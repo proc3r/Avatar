@@ -12,12 +12,14 @@ let library = [];
         let speechSubChunks = [];
         let currentSubChunkIndex = 0;
         let currentUtterance = null;
-        
+        let synopsisSpeechRate = 1.1; // Variable global para la velocidad
         let imageTimer = null;
         let imageSecondsLeft = 5;
         let isImageTimerPaused = false;
-
-														
+		let synopsisSubChunks = [];
+		let currentSynopsisIdx = 0;
+		let readerSpeechRate = 1.0; // Velocidad por defecto
+		let synth = window.speechSynthesis;												
 																		   
         const DICTIONARY_URL = "https://raw.githubusercontent.com/proc3r/nexus/master/voice-dictionary.json";
         let VOICE_REPLACEMENTS = {}; 
@@ -43,7 +45,38 @@ let library = [];
 
         const DEFAULT_COVER = "https://raw.githubusercontent.com/proc3r/001-Publicados/refs/heads/master/adjuntos/PortadaBase.jpg";
         
-        let synth = window.speechSynthesis;
+		function toggleReaderSpeedMenu(event) {
+			if (event) event.stopPropagation(); // Evita que el clic llegue al document
+			const menu = document.getElementById('reader-speed-menu');
+			menu.classList.toggle('hidden');
+}
+
+
+	function setReaderSpeed(rate) {
+    // 1. Actualizamos ambas variables globales para asegurar consistencia
+    readerSpeechRate = rate;
+    synopsisSpeechRate = rate;
+
+    // 2. Actualizamos la etiqueta visual del lector principal
+    const label = document.getElementById('reader-speed-label');
+    if (label) label.innerText = rate + 'x';
+
+    // 3. Actualizamos la etiqueta visual de la sinopsis (si existe)
+    const labelSynopsis = document.getElementById('current-speed-label');
+    if (labelSynopsis) labelSynopsis.innerText = rate + 'x';
+    
+    // 4. Ocultamos los menús de selección
+    const speedMenu = document.getElementById('reader-speed-menu');
+    if (speedMenu) speedMenu.classList.add('hidden');
+    
+    const speedMenuSynopsis = document.getElementById('synopsis-speed-menu');
+    if (speedMenuSynopsis) speedMenuSynopsis.classList.add('hidden');
+
+    // NOTA: No aplicamos synth.cancel(). 
+    // La nueva velocidad se tomará automáticamente en la siguiente llamada a:
+    // new SpeechSynthesisUtterance() en el próximo fragmento.
+}
+        
 
         window.onload = () => {
 																
@@ -348,7 +381,7 @@ function renderLibrary() {
                         ${book.title}
                     </h3>
 
-                    <div class="flex items-center justify-between w-full pt-2 border-t border-white/10">
+                    <div class="flex items-center justify-between h-[25%] w-full pt-2 border-t border-white/10">
                         <p class="text-[15px] text-white/70 font-[500] uppercase tracking-[0.01em] condensed">
                             ${displayChapters} SECCIONES
                         </p>
@@ -598,48 +631,81 @@ function loadChapter(idx) {
 								
 		 
 
-        function startSpeech() {
-            isSpeaking = true; isPaused = false;
-            document.getElementById('tts-btn').classList.add('hidden');
-            document.getElementById('pause-btn').classList.remove('hidden');
-            document.getElementById('stop-btn').classList.remove('hidden');
-            updatePauseUI(false);
-			
-            const isImage = (chunks[currentChunkIndex] || "").match(/!\[\[(.*?)\]\]/);
-            if (isImage) startImageTimer(); else prepareAndStartSpeech();
-										 
+     function startSpeech() {
+    isSpeaking = true; 
+    isPaused = false;
+    
+    // Visibilidad de botones flotantes
+    document.getElementById('tts-btn').classList.add('hidden'); // Oculta Persona hablando (Rojo)
+    document.getElementById('pause-btn').classList.remove('hidden'); // Muestra Pausa (Amarillo)
+    document.getElementById('stop-btn').classList.remove('hidden'); // Muestra Stop pequeño
+    
+    // Asegurar que el botón de pausa empiece en estado "sonando" (Amarillo)
+    updatePauseUI(false);
+    
+    const isImage = (chunks[currentChunkIndex] || "").match(/!\[\[(.*?)\]\]/);
+    if (isImage) startImageTimer(); else prepareAndStartSpeech();
+}
+
+function pauseSpeech() { 
+    if (synth.speaking && !isPaused) { 
+        synth.pause(); 
+        isPaused = true; 
+        updatePauseUI(true); // Cambia a icono Play y color Verde
+    } else if (isPaused) {
+        resumeSpeech(); 
+    }
+    if (imageTimer) isImageTimerPaused = true; 
+}
+
+function resumeSpeech() { 
+    synth.resume(); 
+    isPaused = false; 
+    updatePauseUI(false); // Vuelve a icono Pausa y color Amarillo
+    
+    if ((chunks[currentChunkIndex] || "").match(/!\[\[(.*?)\]\]/)) { 
+        isImageTimerPaused = false; 
+        if (!imageTimer) startImageTimer(); 
+    } 
+}
+
+function updatePauseUI(paused) { 
+    const icon = document.getElementById('pause-icon'); 
+    const pauseBtn = document.getElementById('pause-btn');
+
+    if (icon) {
+        // Si está pausado, ponemos el icono de Play (&#xe037;), si no, el de Pausa (&#xe1a2;)
+        icon.innerHTML = paused ? '&#xe037;' : '&#xe1a2;'; 
+    }
+
+    if (pauseBtn) {
+        if (paused) {
+            // APLICAR COLOR VERDE
+            pauseBtn.classList.add('bg-pause-active');
+        } else {
+            // VOLVER A COLOR AMARILLO
+            pauseBtn.classList.remove('bg-pause-active');
         }
-        function pauseSpeech() { if (synth.speaking && !isPaused) { synth.pause(); isPaused = true; updatePauseUI(true); } else if (isPaused) resumeSpeech(); if (imageTimer) isImageTimerPaused = true; }
-        function resumeSpeech() { synth.resume(); isPaused = false; updatePauseUI(false); if ((chunks[currentChunkIndex] || "").match(/!\[\[(.*?)\]\]/)) { isImageTimerPaused = false; if (!imageTimer) startImageTimer(); } }
-											   
-							   
-								 
-									 
-								  
-							   
-			 
-													  
-		 
+    }
+}
 
-								  
-							
-							  
-								  
-																			
-										   
-												   
-			 
-		 
-
-										
-        function updatePauseUI(paused) { const icon = document.getElementById('pause-icon'); if(icon) icon.innerHTML = paused ? '&#xe037;' : '&#xe1a2;'; }
-        function stopSpeech() { synth.cancel(); isSpeaking = false; isPaused = false; clearImageTimer(); document.getElementById('tts-btn').classList.remove('hidden'); document.getElementById('pause-btn').classList.add('hidden'); document.getElementById('stop-btn').classList.add('hidden'); updatePauseUI(false); }
-		 
-
-							   
-							
-												 
-							  
+function stopSpeech() { 
+    synth.cancel(); 
+    isSpeaking = false; 
+    isPaused = false; 
+    clearImageTimer(); 
+    
+    // Volver al estado inicial: Solo botón rojo de persona hablando
+    document.getElementById('tts-btn').classList.remove('hidden'); 
+    document.getElementById('pause-btn').classList.add('hidden'); 
+    document.getElementById('stop-btn').classList.add('hidden'); 
+    
+    // Limpiar color verde por si acaso
+    const pauseBtn = document.getElementById('pause-btn');
+    if (pauseBtn) pauseBtn.classList.remove('bg-pause-active');
+    
+    updatePauseUI(false); 
+}					  
 																		  
 																		 
 																		
@@ -655,6 +721,10 @@ function loadChapter(idx) {
 																				   
             let textToRead = document.getElementById('book-content').innerText;
             if(!textToRead.trim()) return;
+			textToRead = textToRead.replace(/^>\s*-\s*/gm, "… ");
+			textToRead = textToRead.replace(/^-\s+/gm, "… ");
+			textToRead = textToRead.replace(/([a-zA-ZáéíóúÁÉÍÓÚ0-9])\s*-\s*([a-zA-ZáéíóúÁÉÍÓÚ])/g, "$1 … $2");
+			textToRead = textToRead.replace(/([a-zA-ZáéíóúÁÉÍÓÚ0-9])\s*—\s*([a-zA-ZáéíóúÁÉÍÓÚ])/g, "$1,$2");
             // MEJORA: Convertimos a minúsculas solo para el motor de voz para evitar que deletree títulos
             textToRead = textToRead.toLowerCase(); 
             textToRead = filterTextForVoice(textToRead);
@@ -689,7 +759,8 @@ function loadChapter(idx) {
             }
             currentUtterance = new SpeechSynthesisUtterance(speechSubChunks[currentSubChunkIndex]);
             currentUtterance.lang = 'es-ES';
-            currentUtterance.onend = () => { currentSubChunkIndex++; setTimeout(speakSubChunk, 100); };
+            currentUtterance.rate = readerSpeechRate; 
+			currentUtterance.onend = () => { currentSubChunkIndex++; setTimeout(speakSubChunk, 100); };
             synth.speak(currentUtterance);
         }
 
@@ -767,9 +838,12 @@ function loadChapter(idx) {
 			  
         }
 
-        function jumpToChapter(idx) { let wasSpeaking = isSpeaking; stopSpeech(); loadChapter(idx); if (wasSpeaking) startSpeech(); }
-										 
-						  
+        function jumpToChapter(idx) { let wasSpeaking = isSpeaking; stopSpeech(); loadChapter(idx);
+    // Solo cerramos el sidebar si NO está anclado (isPinned es false)
+    if (!isPinned) closeSidebar();
+
+    if (wasSpeaking) startSpeech();
+}				  
 							  
 										   
 		 
@@ -795,9 +869,9 @@ function loadChapter(idx) {
             }
             const mins = remainingWords / 180;
             const timeEl = document.getElementById('time-remaining');
-            if (mins < 1) timeEl.innerText = "Menos de 1 min restante";
-            else if (mins < 60) timeEl.innerText = `${Math.ceil(mins)} min restantes`;
-            else timeEl.innerText = `${Math.floor(mins/60)}h ${Math.ceil(mins%60)}m restantes`;
+            if (mins < 1) timeEl.innerText = "Falta menos de 1 min";
+            else if (mins < 60) timeEl.innerText = `Faltan ${Math.ceil(mins)} min`;
+            else timeEl.innerText = `Faltan ${Math.floor(mins/60)}h ${Math.ceil(mins%60)}m`;
         }
 
         function renderTOC() {
@@ -840,38 +914,134 @@ function loadChapter(idx) {
         function toggleExpandMode() { allExpanded = !allExpanded; document.getElementById('expand-mode-btn').classList.toggle('text-[#ffcc00]', allExpanded); document.querySelectorAll('[id^="child-container-"]').forEach(c => c.classList.toggle('hidden', !allExpanded)); if (!allExpanded) expandActiveHierarchy(currentChapterIndex); }
         function expandActiveHierarchy(idx) { if (!allExpanded) { let current = document.getElementById(`toc-item-${idx}`); while (current) { const container = current.parentElement; if (container && container.id.startsWith('child-container-')) { container.classList.remove('hidden'); const pIdx = container.id.replace('child-container-', ''); const t = document.querySelector(`#toc-item-${pIdx} .toc-toggle`); if(t) t.innerText = '−'; current = document.getElementById(`toc-item-${pIdx}`); } else current = null; } } }
         
-        function renderProgressMarkers() {
-            const container = document.getElementById('progress-markers-container');
-            container.innerHTML = '';
-            currentBook.chapters.forEach((ch, i) => {
-                if (ch.level > 2) return;
-                const pos = (i / currentBook.chapters.length) * 100;
-                const marker = document.createElement('div');
-                marker.className = `progress-marker`;
-                marker.style.left = `${pos}%`;
-                marker.innerHTML = ch.level === 1 ? `<div class="marker-h1-dot"></div>` : `<div class="marker-h2-line"></div>`;
-                const tooltip = document.createElement('div');
-                tooltip.className = 'marker-tooltip condensed';
-				// TOOLTIP: LIMPIEZA APLICADA PARA QUE NO MUESTRE CÓDIGO CSS
-                tooltip.innerText = stripHtml(ch.title);
-                marker.appendChild(tooltip);
-                marker.onclick = (e) => { e.stopPropagation(); jumpToChapter(i); };
-                container.appendChild(marker);
-            });
-        }
+function renderProgressMarkers() {
+    const container = document.getElementById('progress-markers-container');
+    container.innerHTML = '';
+    
+    if (!window.ttHideTimer) window.ttHideTimer = null;
 
-        function openSidebar() { document.getElementById('reader-sidebar').classList.add('open'); document.getElementById('sidebar-trigger').classList.add('hidden'); if (sidebarTimer) clearTimeout(sidebarTimer); }
-        function closeSidebar() { document.getElementById('reader-sidebar').classList.remove('open'); document.getElementById('sidebar-trigger').classList.remove('hidden'); }
-        function handleSidebarLeave() { if (isPinned) return; sidebarTimer = setTimeout(() => { closeSidebar(); }, 1200); }
-        function togglePin() { isPinned = !isPinned; document.getElementById('reader-sidebar').classList.toggle('pinned', isPinned); document.getElementById('pin-btn').classList.toggle('opacity-100', isPinned); }
-        function initTouchEvents() {
-            const sidebar = document.getElementById('reader-sidebar');
-            let startX = 0;
-            sidebar.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
-													   
-            sidebar.addEventListener('touchend', e => { if (startX - e.changedTouches[0].clientX > 50) closeSidebar(); }, {passive: true});
-								
-        }
+    currentBook.chapters.forEach((ch, i) => {
+        if (ch.level > 2) return;
+        
+        const pos = (i / currentBook.chapters.length) * 100;
+        const marker = document.createElement('div');
+        marker.className = `progress-marker`;
+        marker.style.left = `${pos}%`;
+        marker.innerHTML = ch.level === 1 ? `<div class="marker-h1-dot"></div>` : `<div class="marker-h2-line"></div>`;
+        
+        const tooltip = document.createElement('div');
+        tooltip.className = 'marker-tooltip condensed';
+        tooltip.innerText = stripHtml(ch.title);
+
+        if (pos < 15) tooltip.classList.add('edge-left');
+        else if (pos > 85) tooltip.classList.add('edge-right');
+
+        marker.appendChild(tooltip);
+
+        // --- LÓGICA DE MOSTRADO PERSISTENTE ---
+        const showTooltipForced = () => {
+            if (window.ttHideTimer) clearTimeout(window.ttHideTimer);
+            
+            // Limpiar todos los demás de forma inmediata
+            document.querySelectorAll('.marker-tooltip').forEach(t => {
+                t.classList.remove('force-show');
+            });
+            
+            tooltip.classList.add('force-show');
+        };
+
+        // --- EVENTOS ESPECÍFICOS ---
+
+        // Móvil: Toque inicial
+        marker.addEventListener('touchstart', (e) => {
+            // Evitamos que el navegador haga "hover" por su cuenta
+            showTooltipForced();
+            
+            // Se quedará 4 segundos, dándole tiempo de sobra al usuario para leer
+            window.ttHideTimer = setTimeout(() => {
+                tooltip.classList.remove('force-show');
+            }, 4000);
+        }, { passive: true });
+
+        // Escritorio: Mouse
+        marker.addEventListener('mouseenter', showTooltipForced);
+        marker.addEventListener('mouseleave', () => {
+            if (window.ttHideTimer) clearTimeout(window.ttHideTimer);
+            window.ttHideTimer = setTimeout(() => {
+                tooltip.classList.remove('force-show');
+            }, 1000); // 1 segundo de cortesía en escritorio
+        });
+
+        // Click: Navegación (Funciona en ambos)
+        marker.onclick = (e) => { 
+            e.stopPropagation(); 
+            // Si hace click, quitamos el tooltip y saltamos
+            tooltip.classList.remove('force-show');
+            if (window.ttHideTimer) clearTimeout(window.ttHideTimer);
+            jumpToChapter(i); 
+        };
+        
+        container.appendChild(marker);
+    });
+}
+		
+        function openSidebar() { 
+    document.getElementById('reader-sidebar').classList.add('open'); 
+    document.getElementById('sidebar-trigger').classList.add('hidden'); 
+    if (sidebarTimer) clearTimeout(sidebarTimer); 
+}
+
+function closeSidebar() {
+    // Resetear estado del PIN para que el layout vuelva a pantalla completa
+    isPinned = false; 
+    document.body.classList.remove('sidebar-pinned');
+    
+    const sidebar = document.getElementById('reader-sidebar');
+    const trigger = document.getElementById('sidebar-trigger');
+    
+    if (sidebar) {
+        sidebar.classList.remove('open');
+        sidebar.classList.remove('pinned');
+    }
+    
+    // Volver a mostrar el disparador (la etiqueta amarilla lateral)
+    if (trigger) {
+        trigger.classList.remove('hidden');
+    }
+}
+
+function handleSidebarLeave() { 
+    if (isPinned) return; 
+    sidebarTimer = setTimeout(() => { closeSidebar(); }, 1200); 
+}
+
+function togglePin() { 
+    // Seguridad: Si es móvil (ancho menor a 1024), no permitir el PIN
+    if (window.innerWidth < 1024) return; 
+
+    isPinned = !isPinned; 
+    const sidebar = document.getElementById('reader-sidebar');
+    const pinBtn = document.getElementById('pin-btn');
+    
+    sidebar.classList.toggle('pinned', isPinned); 
+    pinBtn.classList.toggle('opacity-100', isPinned); 
+
+    // Añadimos clase al body para mover los controles de audio en el CSS
+    if (isPinned) {
+        document.body.classList.add('sidebar-pinned');
+    } else {
+        document.body.classList.remove('sidebar-pinned');
+    }
+}
+
+function initTouchEvents() {
+    const sidebar = document.getElementById('reader-sidebar');
+    let startX = 0;
+    sidebar.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
+    sidebar.addEventListener('touchend', e => { 
+        if (startX - e.changedTouches[0].clientX > 50) closeSidebar(); 
+    }, {passive: true});
+}
 
 function showSynopsis(bookId) {
     const book = library.find(b => b.id === bookId);
@@ -896,19 +1066,26 @@ function showSynopsis(bookId) {
 
         lines.forEach(line => {
             let cleanLine = line.trim();
-								   
+            
             if (!cleanLine || cleanLine.toLowerCase().startsWith('# sinopsis')) return;
+
+            // Función interna para procesar Markdown de Obsidian
+            const processMD = (str) => {
+                return str
+                    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
+                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+                    .replace(/\*(.*?)\*/g, '<em>$1</em>')
+                    .replace(/_(.*?)_/g, '<em>$1</em>');
+            };
 
             if (cleanLine.startsWith('##')) {
                 formattedHtml += `<h2 class="synopsis-h2">${cleanLine.replace(/^#+\s*/, '')}</h2>`;
             } else if (cleanLine.startsWith('>')) {
-                formattedHtml += `<blockquote class="synopsis-quote">${cleanLine.replace(/^>\s*/, '')}</blockquote>`;
+                // Ahora también procesamos negritas e itálicas dentro de las citas
+                let quoteText = processMD(cleanLine.replace(/^>\s*/, ''));
+                formattedHtml += `<blockquote class="synopsis-quote">${quoteText}</blockquote>`;
             } else {
-                let text = cleanLine
-                    .replace(/\*\*\*(.*?)\*\*\*/g, '<strong><em>$1</em></strong>')
-                    .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-                    .replace(/\*(.*?)\*/g, '<em>$1</em>');
-														  
+                let text = processMD(cleanLine);
                 formattedHtml += `<p class="synopsis-p">${text}</p>`;
             }
         });
@@ -947,24 +1124,66 @@ function showSynopsis(bookId) {
     }
 }
 
-let synopsisSubChunks = [];
-let currentSynopsisIdx = 0;
+
+
+
+function toggleSynopsisSpeedMenu(event) {
+    if (event) event.stopPropagation(); // ¡Importante! Evita el cierre inmediato
+    const menu = document.getElementById('synopsis-speed-menu');
+    if (menu) {
+        menu.classList.toggle('hidden');
+    }
+}
+
+function setSynopsisSpeed(rate) {
+    synopsisSpeechRate = rate;
+    document.getElementById('current-speed-label').innerText = rate + 'x';
+    document.getElementById('synopsis-speed-menu').classList.add('hidden');
+    // El cambio se aplicará automáticamente en el siguiente chunk
+}
+
 
 function startSynopsisTTS() {
-    const text = document.getElementById('synopsis-body').innerText;
-    
-    // Cambiamos estado de botones
-    document.getElementById('btn-synopsis-tts').classList.add('hidden');
-    document.getElementById('btn-synopsis-stop').classList.remove('hidden');
-    
-    window.speechSynthesis.cancel(); // Limpiar cualquier lectura previa
+    const body = document.getElementById('synopsis-body');
+    if (!body) return;
 
-    // REUTILIZAMOS TU LÓGICA CORE: splitTextSmartly a 140 caracteres
-    synopsisSubChunks = splitTextSmartly(text, 140);
+    // 1. LIMPIEZA TOTAL PREVIA para evitar leer libros anteriores
+    window.speechSynthesis.cancel();
+	synth.cancel();
+    synopsisSubChunks = [];
     currentSynopsisIdx = 0;
 
-    function speakNextSynopsisChunk() {
-        // Verificamos si el modal sigue abierto antes de procesar el siguiente fragmento
+    // 2. OBTENER TEXTO Y APLICAR FILTRO INTELIGENTE
+    let textToRead = body.innerText;
+
+    // REGLA A: Guiones de lista (inicio de línea o tras blockquote) -> Reemplazar por pausa (.)
+    textToRead = textToRead.replace(/^>\s*-\s*/gm, "… ");
+    textToRead = textToRead.replace(/^-\s+/gm, "… ");
+
+    // REGLA B: Guion entre letras o palabras (ej: "hardware - orgánico") -> Reemplazar por pausa (.)
+    // Buscamos guiones que NO tengan números a ambos lados
+    textToRead = textToRead.replace(/([a-zA-ZáéíóúÁÉÍÓÚ])\s*-\s*([a-zA-ZáéíóúÁÉÍÓÚ])/g, "$1 … $2");
+	
+	// REGLA C: LIMPIEZA DE SÍMBOLOS DE ESTILO (Para que no diga "asterisco")
+    // Eliminamos ***, **, * y _ para que el motor de voz no los nombre
+    textToRead = textToRead.replace(/\*\*\*/g, '')
+                           .replace(/\*\*/g, '')
+                           .replace(/\*/g, '')
+                           .replace(/_/g, '');
+
+    // REGLA 3: Guiones persistentes
+    textToRead = textToRead.replace(/\s+-\s+([a-zA-Z])/g, " … $1");
+    textToRead = textToRead.replace(/([a-zA-ZáéíóúÁÉÍÓÚ0-9])\s*—\s*([a-zA-ZáéíóúÁÉÍÓÚ])/g, "$1,$2");
+
+    // 3. CAMBIAR INTERFAZ
+    document.getElementById('btn-synopsis-tts').classList.add('hidden');
+    document.getElementById('btn-synopsis-stop').classList.remove('hidden');
+
+    // 4. GENERAR CHUNKS (Usando tu función core splitTextSmartly)
+    synopsisSubChunks = splitTextSmartly(textToRead, 140);
+
+    function speakNextSynopsis() {
+        // Verificamos si el modal sigue abierto
         const modalVisible = !document.getElementById('synopsis-modal').classList.contains('hidden');
         
         if (!modalVisible || currentSynopsisIdx >= synopsisSubChunks.length) {
@@ -972,39 +1191,36 @@ function startSynopsisTTS() {
             return;
         }
 
-        const textToRead = synopsisSubChunks[currentSynopsisIdx].trim();
-        if (textToRead.length === 0) {
+        const currentText = synopsisSubChunks[currentSynopsisIdx].trim();
+        if (currentText.length === 0) {
             currentSynopsisIdx++;
-            speakNextSynopsisChunk();
+            speakNextSynopsis();
             return;
         }
 
-        const utter = new SpeechSynthesisUtterance(textToRead);
-        utter.lang = 'es-ES';
-        utter.rate = 1.0;
+        const utter = new SpeechSynthesisUtterance(currentText);
+		utter.lang = 'es-ES';
+		utter.rate = synopsisSpeechRate; // <--- Cambiado de 1.0 a la variable
 
         utter.onend = () => {
             currentSynopsisIdx++;
-            speakNextSynopsisChunk();
+            speakNextSynopsis();
         };
 
-        utter.onerror = (e) => {
-            console.error("Error TTS Sinopsis:", e);
-            stopSynopsisTTS();
-        };
+        utter.onerror = () => stopSynopsisTTS();
 
         window.speechSynthesis.speak(utter);
     }
 
-    speakNextSynopsisChunk();
+    speakNextSynopsis();
 }
 
 function stopSynopsisTTS() {
-    isSynopsisReading = false; // Por seguridad
     window.speechSynthesis.cancel();
+    synopsisSubChunks = [];
+    currentSynopsisIdx = 0;
     document.getElementById('btn-synopsis-stop').classList.add('hidden');
     document.getElementById('btn-synopsis-tts').classList.remove('hidden');
-    synopsisSubChunks = []; // Limpiamos la cola
 }
 
 function closeSynopsis() {
@@ -1030,3 +1246,54 @@ function closeSynopsis() {
     if (btnStop) btnStop.classList.add('hidden');
     if (btnPlay) btnPlay.classList.remove('hidden');
 }
+
+// Cerrar menús de velocidad al tocar fuera de ellos
+document.addEventListener('click', function(event) {
+    const speedMenuReader = document.getElementById('reader-speed-menu');
+    // Referencia al botón usando la clase que tiene en tu HTML
+    const speedBtnReader = document.querySelector('.speed-btn-center');
+    
+    const speedMenuSynopsis = document.getElementById('synopsis-speed-menu');
+    const speedBtnSynopsis = document.getElementById('btn-synopsis-speed');
+
+    // Lógica para el Lector Principal
+    if (speedMenuReader && !speedMenuReader.classList.contains('hidden')) {
+        // Usamos .closest('.speed-btn-center') para detectar el botón correctamente
+        const isClickInsideMenu = speedMenuReader.contains(event.target);
+        const isClickOnButton = event.target.closest('.speed-btn-center');
+
+        if (!isClickInsideMenu && !isClickOnButton) {
+            speedMenuReader.classList.add('hidden');
+        }
+    }
+
+    // Lógica para la Sinopsis
+    if (speedMenuSynopsis && !speedMenuSynopsis.classList.contains('hidden')) {
+        const isClickInsideMenu = speedMenuSynopsis.contains(event.target);
+        const isClickOnButton = event.target.closest('#btn-synopsis-speed');
+
+        if (!isClickInsideMenu && !isClickOnButton) {
+            speedMenuSynopsis.classList.add('hidden');
+        }
+    }
+});
+
+window.addEventListener('resize', () => {
+    const width = window.innerWidth;
+    
+    // Si la pantalla baja de 1024px y está anclado, forzamos el desanclado completo
+    if (width < 1024 && isPinned) {
+        isPinned = false; // Cambiamos el estado global
+        
+        const sidebar = document.getElementById('reader-sidebar');
+        const trigger = document.getElementById('sidebar-trigger');
+        const pinBtn = document.getElementById('pin-btn');
+
+        document.body.classList.remove('sidebar-pinned');
+        if (sidebar) sidebar.classList.remove('pinned', 'open');
+        if (trigger) trigger.classList.remove('hidden'); // MOSTRAR el disparador amarillo
+        if (pinBtn) pinBtn.classList.remove('active'); // Resetear icono del pin si lo usas
+        
+        console.log("Reseteo automático: Pantalla pequeña detectada.");
+    }
+});
