@@ -237,21 +237,14 @@ html, body {
     left: 50%;
 	border-radius: 4px;
 	padding: 4px 8px;
-	background: rgb(0 215 23 / 25%);
-	backdrop-filter: blur(4px);
+	background: rgb(55 58 55 / 85%);
     transform: translateX(-50%);
     opacity: 0;
-	text-transform: uppercase;
-	weight: 600;
     visibility: hidden;
     Transition: opacity 0.3s ease, visibility 0.1s ease;
     pointer-events: none;
     white-space: nowrap;
     z-index: 10001;
-	 border: 1px solid rgb(246 248 249 / 30%);
-	box-shadow: 0px 0px 6px rgb(0 255 0 / 88%);
-	
-	 color: white;
 }
 
 /* Forzar mostrado desde JS */
@@ -451,17 +444,17 @@ html, body {
     position: absolute; top: 110%; left: 50%;
     transform: translateX(-50%);
     min-width: 140px; background: var(--dropdown-bg);
-    /*backdrop-filter: blur(12px);*/
+    backdrop-filter: blur(12px);
     border: 1px solid rgba(255,255,255,0.1);
     border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
     z-index: 200; display: none; padding: 4px 0; color: inherit;
 }
 .settings-dropdown.show { display: block; }
 
-.font-dropdown { width: 170px; max-height: 320px; }
+.font-dropdown { width: 140px; max-height: 300px; }
 
 .setting-option {
-    padding: 8px 14px; cursor: pointer; font-size: 18px;
+    padding: 8px 14px; cursor: pointer; font-size: 13px;
     transition: all 0.2s; display: flex; align-items: center; gap: 8px;
     line-height: 1; 
 }
@@ -978,25 +971,20 @@ html, body {
     justify-content: center;
     /*border: 4px solid #141517;*/
     box-shadow: 0 8px 20px rgba(0,0,0,0.5);
-	cursor: pointer;
+    cursor: pointer;
     transition: transform 0.2s, background-color 0.3s;
 }
 
 .btn-float-red span, .btn-float-pause span {
     font-size: 35px;
     color: black;
-	
 }
 
 /* Botón Rojo (Persona hablando) */
 .btn-float-red {
-    
-	/*box-shadow: 0 0px 5px rgb(249 11 11 / 95%);*/
-	
+    background-color: rgb(247 46 6 / 56%);
+	box-shadow: 0 0px 5px rgb(249 11 11 / 95%);
     backdrop-filter: blur(1px);
-	background-color: rgb(52 243 12 / 70%) !important;
-	transition: transform 0.5s, background-color 0.3s;
-	box-shadow: 0px 0px 8px rgb(0 255 0  / 81%);
 }
 
 
@@ -1010,30 +998,22 @@ html, body {
     align-items: center;
     justify-content: center;
     background-color: rgb(0 229 34 / 76%);
-    cursor: pointer;
-    transition: transform 0.5s, background-color 0.3s;
-	box-shadow: 0 0px 5px rgb(11 249 62 / 55%);
-	
+        cursor: pointer;
+    transition: transform 0.2s, background-color 0.3s;
+	box-shadow: 0 0px 5px rgb(11 249 62 / 95%);
 }
 
 
 /* Botón Pausa (Amarillo por defecto) */
 .btn-float-pause {
     background-color: rgb(255 204 0 / 0.6);
-    /*box-shadow: 3px 3px 12px rgb(24 24 24 / 55%);*/
-	box-shadow: 0px 0px 8px rgb(0 255 0  / 81%);
-	
 }
 
 /* Clase que se aplica por JS cuando se pausa (Verde) */
 .btn-float-pause.bg-pause-active {
     background-color: rgb(52 243 12 / 70%) !important;
-	/*box-shadow: 3px 3px 12px rgb(24 24 24 / 55%);*/
-	transition: transform 0.5s, background-color 0.3s;
-	box-shadow: 0px 0px 8px rgb(0 255 0  / 81%);
+	box-shadow: 0 0px 5px rgb(30 189 24 / 90%);
 }
-
-
 
 /* Botón Stop (El pequeño que aparece arriba) */
 .btn-float-stop {
@@ -1050,8 +1030,6 @@ html, body {
     cursor: pointer;
     transition: all 0.3s;
 	box-shadow: 0 0px 5px rgb(249 11 11 / 95%);
-	/*box-shadow: 3px 3px 12px rgb(24 24 24 / 55%);*/
-	transition: transform 0.5s, background-color 0.3s;
 	
 }
 
@@ -1086,7 +1064,7 @@ html, body {
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 0px 5px rgb(190 11 249 / 95%);
+    box-shadow: 0 0px 5px rgb(249 11 11 / 95%);
 }
 
 .btn-speed-sinopsis {
@@ -1102,7 +1080,7 @@ html, body {
     justify-content: center;
     cursor: pointer;
     transition: all 0.3s;
-    box-shadow: 0 0px 5px rgb(190 11 249 / 95%);
+    box-shadow: 0 0px 5px rgb(249 11 11 / 95%);
 }
 
 .btn-float-stop:hover {
@@ -1242,63 +1220,3 @@ html, body {
     max-height: 300px;
     overflow-y: auto;
 }
-
-/* --- ESTILO BASE PARA BOTONES DE NAVEGACIÓN --- */
-.btn-nav {
-    padding: 4px 12px;
-    border-radius: 4px;
-    font-size: 16px;
-    font-weight: bold;
-    text-transform: uppercase;
-    font-family: 'Barlow Condensed', sans-serif;
-    transition: all 0.3s ease;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-
-/* --- BOTÓN NEXT (ROJO NEÓN) --- */
-.btn-next {
-    background: rgba(255, 68, 68, 0.26); /* Rojo muy transparente */
-    border: 1px solid rgba(255, 68, 68, 0.3);
-    color: #ff4444;
-    box-shadow: 0px 0px 8px rgba(255, 68, 68, 0.6);
-	border-radius: 0.8rem;
-}
-
-.btn-next:hover {
-    background: rgba(255, 68, 68, 0.5); /* Efecto cristal más sólido */
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
-    font-size: 17px;
-    box-shadow: 0px 0px 15px rgba(255, 68, 68, 0.9);
-    transform: scale(1.1);
-}
-
-/* --- BOTÓN BACK (AZUL NEÓN) --- */
-.btn-back {
-    background: rgba(33, 150, 243, 0.26); /* Azul muy transparente */
-    border: 1px solid rgba(33, 150, 243, 0.3);
-    color: #2196f3;
-    box-shadow: 0px 0px 8px rgba(33, 150, 243, 0.6);
-	border-radius: 0.8rem;
-}
-
-.btn-back:hover {
-    background: rgba(33, 150, 243, 0.5);
-    border: 1px solid rgba(255, 255, 255, 0.4);
-    color: white;
-    font-size: 17px;
-    box-shadow: 0px 0px 15px rgba(33, 150, 243, 0.9);
-    transform: scale(1.1);
-}
-
-/* Ajuste para que no se muevan otros elementos al crecer el botón */
-.flex.justify-between.items-center {
-    gap: 10px;
-    min-height: 50px; /* Evita que la barra salte al hacer hover */
-}
-
-

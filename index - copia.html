@@ -110,6 +110,7 @@
                                 <div class="setting-option" style="font-family: 'Lora'" onclick="changeFontFamily('Lora')">Lora</div>
                                 <div class="setting-option" style="font-family: 'Libre Baskerville'" onclick="changeFontFamily('Libre Baskerville')">Baskerville</div>
                                 <div class="setting-option" style="font-family: 'Inter'" onclick="changeFontFamily('Inter')">Inter</div>
+                                <div class="setting-option" style="font-family: 'Source Sans 3'" onclick="changeFontFamily('Source Sans 3')">Source Sans</div>
                                 <div class="setting-option" style="font-family: 'IBM Plex Sans'" onclick="changeFontFamily('IBM Plex Sans')">IBM Plex Sans</div>
                                 <div class="setting-option" style="font-family: 'Montserrat'" onclick="changeFontFamily('Montserrat')">Montserrat</div>
                                 <div class="setting-option" style="font-family: 'Atkinson Hyperlegible'" onclick="changeFontFamily('Atkinson Hyperlegible')">Hyperlegible</div>
@@ -175,9 +176,7 @@
                         </div>
 						
                         <div class="flex justify-between items-center pb-2.5 px-1">
-    <button onclick="prevChunk()" class="btn-nav btn-back">
-    ◀ BACK
-</button>
+    <button onclick="prevChunk()" class="bg-[#ffcc00] text-black px-3 py-2 rounded-full font-black uppercase tracking-widest text-[15px] shadow-md hover:bg-[#2196f3] transition-colors condensed">◀ BACK</button>
     
     <div class="relative">
         <div id="reader-speed-menu" class="speed-menu-up hidden">
@@ -193,15 +192,11 @@
 </button>
     </div>
 
-   <button id="next-btn" onclick="nextChunk()" class="btn-nav btn-next">
-    NEXT ▶
-</button>
+    <button id="next-btn" onclick="nextChunk()" class="bg-[#ffcc00] text-black px-3 py-2 rounded-full font-black uppercase tracking-widest text-[15px] shadow-md hover:bg-[#ff4444] transition-colors condensed">NEXT ▶</button>
 </div>
 
 <div class="reader-controls-wrapper">
-    <button id="stop-btn" onclick="stopSpeech()" class="btn-float-stop hidden">
-        <span class="mi-round">&#xef71;</span>
-    </button>
+    
 
     <div class="main-audio-trigger">
         <button id="tts-btn" onclick="startSpeech()" class="btn-float-red">
@@ -213,7 +208,9 @@
             <span id="pause-icon" class="mi-round">&#xe1a2;</span>
         </button>
     </div>
-	
+	<button id="stop-btn" onclick="stopSpeech()" class="btn-float-stop hidden">
+        <span class="mi-round">&#xef71;</span>
+    </button>
 </div>
 
                     </div>
