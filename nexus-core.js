@@ -28,7 +28,7 @@
 		};
 	}
 
-	function getOptimizedImageUrl(url, width = 800) {
+	function getOptimizedImageUrl(url, width = 400) {
 		if (!url || url === DEFAULT_COVER) return url;
 		return `https://wsrv.nl/?url=${encodeURIComponent(url)}&w=${width}&output=webp&q=75`;
 	}
@@ -75,7 +75,7 @@ async function loadDirectBook(params) {
         if (coverMatch) {
             let fileNameImg = coverMatch[1].split('|')[0].trim();
             let rawCoverUrl = repo.adjuntos + encodeURIComponent(fileNameImg);
-            coverUrl = getOptimizedImageUrl(rawCoverUrl, 500); 
+            coverUrl = getOptimizedImageUrl(rawCoverUrl, 400); 
         }
 
         // Dentro de loadDirectBook en nexus-core.js
@@ -185,7 +185,7 @@ async function fetchBooks() {
                 if (coverMatch) {
                     let fileNameImg = coverMatch[1].split('|')[0].trim();
                     let rawCoverUrl = repo.adjuntos + encodeURIComponent(fileNameImg);
-                    coverUrl = getOptimizedImageUrl(rawCoverUrl, 500); 
+                    coverUrl = getOptimizedImageUrl(rawCoverUrl, 400); 
                 }
 
                 library.push({
@@ -374,7 +374,7 @@ function openReader(id) {
                 if (isAudio || isVideo) { if (window.navDirection === 'prev') prevChunk(); else nextChunk(); return; }
                 isImage = true;
                 const rawImageUrl = currentBook.rawBase + encodeURIComponent(embedMatch[1].split('|')[0].trim());
-				const optimizedUrl = getOptimizedImageUrl(rawImageUrl, 1000); // 1000px para lectura interna
+				const optimizedUrl = getOptimizedImageUrl(rawImageUrl, 700); // 1000px para lectura interna
 			finalHtml = `
 				<div class="reader-image-container">
 					<img src="${optimizedUrl}" 
@@ -389,7 +389,7 @@ function openReader(id) {
             } else if (rawText.trim().startsWith('>')) {
                 // Modificación para Callouts: Procesamos múltiples líneas si están presentes (unidas por \n)
                 let lines = rawText.split('\n');
-                let processedLines = lines.map(l => cleanMarkdown(l.trim().replace(/^>\s?/, ''))).join('<br><hr>');
+                let processedLines = lines.map(l => cleanMarkdown(l.trim().replace(/^>\s?/, ''))).join('<span style="display: block;opacity: 70%;border-bottom: 2px dotted; margin-bottom: 10px;"></span>');
                 finalHtml = `<div class="custom-blockquote">${processFormatting(processedLines)}</div>`;
             } else {
  
