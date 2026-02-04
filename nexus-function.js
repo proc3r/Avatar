@@ -221,25 +221,38 @@ function renderTOC() {
 		});
 	}
 		
-    function openSidebar() { 
-		document.getElementById('reader-sidebar').classList.add('open'); 
-		document.getElementById('sidebar-trigger').classList.add('hidden'); 
-		if (sidebarTimer) clearTimeout(sidebarTimer); 
-	}
+    
+	
+	function openSidebar() { 
+    const sidebar = document.getElementById('reader-sidebar');
+    sidebar.classList.add('open'); 
+    document.body.classList.add('sidebar-open'); // Nueva clase de control
+    document.getElementById('sidebar-trigger').classList.add('hidden'); 
+    
+    if (window.innerWidth < 1024) {
+        document.body.style.overflow = 'hidden';
+    }
+
+    if (sidebarTimer) clearTimeout(sidebarTimer); 
+}
 
 	function closeSidebar() {
-		isPinned = false; 
-		document.body.classList.remove('sidebar-pinned');
-		const sidebar = document.getElementById('reader-sidebar');
-		const trigger = document.getElementById('sidebar-trigger');
-		if (sidebar) {
-			sidebar.classList.remove('open');
-			sidebar.classList.remove('pinned');
-		}
-		if (trigger) {
-			trigger.classList.remove('hidden');
-		}
-	}
+    isPinned = false; 
+    document.body.style.overflow = '';
+    document.body.classList.remove('sidebar-pinned');
+    document.body.classList.remove('sidebar-open'); // Limpiamos la clase
+
+    const sidebar = document.getElementById('reader-sidebar');
+    const trigger = document.getElementById('sidebar-trigger');
+
+    if (sidebar) {
+        sidebar.classList.remove('open');
+        sidebar.classList.remove('pinned');
+    }
+    if (trigger) {
+        trigger.classList.remove('hidden');
+    }
+}
 
 	function handleSidebarLeave() { 
 		if (isPinned) return; 
@@ -260,14 +273,49 @@ function renderTOC() {
 		}
 	}
 
+	
+	
 	function initTouchEvents() {
-		const sidebar = document.getElementById('reader-sidebar');
-		let startX = 0;
-		sidebar.addEventListener('touchstart', e => startX = e.touches[0].clientX, {passive: true});
-		sidebar.addEventListener('touchend', e => { 
-			if (startX - e.changedTouches[0].clientX > 50) closeSidebar(); 
-		}, {passive: true});
-	}
+    const sidebar = document.getElementById('reader-sidebar');
+    if (!sidebar) return;
+
+    let startX = 0;
+    let startY = 0;
+
+    sidebar.addEventListener('touchstart', e => {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+        
+        // Si estamos al tope de la lista, bajamos 1px manualmente. 
+        // Esto "engaña" al navegador para que no active el pull-to-refresh.
+        if (sidebar.scrollTop === 0) {
+            sidebar.scrollTop = 1;
+        }
+    }, {passive: false});
+
+    sidebar.addEventListener('touchmove', e => {
+        const currentY = e.touches[0].clientY;
+        const currentX = e.touches[0].clientX;
+        const diffY = currentY - startY;
+        const diffX = currentX - startX;
+
+        // Si el movimiento es vertical (scroll)
+        if (Math.abs(diffY) > Math.abs(diffX)) {
+            // Evitamos que el evento llegue al 'body' o al navegador (refresco)
+            e.stopPropagation();
+        }
+    }, {passive: false});
+
+    sidebar.addEventListener('touchend', e => { 
+        const endX = e.changedTouches[0].clientX;
+        const endY = e.changedTouches[0].clientY;
+
+        // Lógica de cierre lateral (Swipe left)
+        if (startX - endX > 70 && Math.abs(startY - endY) < 40) {
+            closeSidebar(); 
+        }
+    }, {passive: true});
+}
 
 	
 
@@ -289,22 +337,66 @@ function renderTOC() {
 		}
 	});
 
-	function openImageModal(url, caption) {
-		const modal = document.getElementById('image-modal');
-		const modalImg = document.getElementById('modal-image');
-		const modalCap = document.getElementById('modal-caption');
-		modalImg.src = url;
-		modalCap.innerText = caption.replace(/_/g, ' '); // Limpia el nombre del archivo
-		modal.classList.remove('hidden');
-		document.body.style.overflow = 'hidden';
-	}
 
-	function closeImageModal() {
-		const modal = document.getElementById('image-modal');
-		modal.classList.add('hidden');
-		document.body.style.overflow = '';
-		document.getElementById('modal-image').src = "";
-	}
+		// Función para habilitar el zoom cuando la imagen se abre
+		function enableZoom() {
+			const viewport = document.querySelector('meta[name="viewport"]');
+			if (viewport) {
+				viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+			}
+		}
+
+		// Función para deshabilitar el zoom al cerrar la imagen
+		function disableZoom() {
+			const viewport = document.getElementById('meta-viewport'); // O usa querySelector como arriba
+			if (viewport) {
+				viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+			}
+			
+			// TRUCO EXTRA: Forzar al navegador a volver al zoom original
+			window.scrollTo(0, 0);
+			document.body.style.zoom = "100%"; 
+		}
+
+
+
+	function openImageModal(url, caption) {
+    const modal = document.getElementById('image-modal');
+    const modalImg = document.getElementById('modal-image');
+    const modalCap = document.getElementById('modal-caption');
+    
+    // 1. Habilitar ZOOM temporalmente para la imagen
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes');
+    }
+
+    modalImg.src = url;
+    modalCap.innerText = caption.replace(/_/g, ' ');
+    modal.classList.remove('hidden');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeImageModal() {
+    const modal = document.getElementById('image-modal');
+    
+    // 1. Bloquear ZOOM nuevamente
+    const viewport = document.querySelector('meta[name="viewport"]');
+    if (viewport) {
+        viewport.setAttribute('content', 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no');
+    }
+
+    // 2. Truco para forzar al navegador a "resetear" el zoom si el usuario lo dejó ampliado
+    window.scrollTo(0, 0); 
+
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+    document.getElementById('modal-image').src = "";
+}
+
+document.addEventListener('keydown', (e) => {
+    if (e.key === "Escape") closeImageModal();
+});
 
 	document.addEventListener('keydown', (e) => {
 		if (e.key === "Escape") closeImageModal();
@@ -442,43 +534,99 @@ function renderTOC() {
             }
         });
 		
-        function toggleDropdown(id) {
-            const el = document.getElementById(id);
-            const isShown = el.classList.contains('show');
-            document.querySelectorAll('.settings-dropdown').forEach(d => d.classList.remove('show'));
-            if(!isShown) el.classList.add('show');
-        }
-        function changeFontFamily(f) {
-            document.documentElement.style.setProperty('--reader-font-family', f);
-            document.getElementById('current-font-label').innerText = f;
-            document.getElementById('font-dropdown').classList.remove('show');
-            document.querySelectorAll('#font-dropdown .setting-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.style.fontFamily.replace(/['"]/g, '') === f);
-            });
-        }
-        function changeAlignment(align) {
-            document.documentElement.style.setProperty('--reader-text-align', align);
-            document.getElementById('align-dropdown').classList.remove('show');
-            document.querySelectorAll('#align-dropdown .setting-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.getAttribute('onclick').includes(align));
-            });
-        }
-        function changeLineHeight(h) {
-            document.documentElement.style.setProperty('--reader-line-height', h);
-            document.getElementById('spacing-dropdown').classList.remove('show');
-            document.querySelectorAll('#spacing-dropdown .setting-option').forEach(opt => {
-                opt.classList.toggle('selected', opt.getAttribute('onclick').includes(h));
-            });
-        }
-        function changeFontSize(d) { 
-            const val = document.getElementById('font-size-val'); 
-            let s = Math.max(12, Math.min(60, parseInt(val.innerText) + d)); 
-            val.innerText = s; 
-            document.documentElement.style.setProperty('--reader-font-size', s + 'px');
-        }
+     function toggleDropdown(id) {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const isShown = el.classList.contains('show');
+    document.querySelectorAll('.settings-dropdown').forEach(d => d.classList.remove('show'));
+    if (!isShown) el.classList.add('show');
+}
+
+function changeFontFamily(f) {
+    const isMobile = window.innerWidth <= 768;
+    const deviceSuffix = isMobile ? '-mobile' : '-desktop';
+
+    document.documentElement.style.setProperty('--reader-font-family', f);
+    localStorage.setItem('reader-font-family' + deviceSuffix, f);
+    
+    document.getElementById('font-dropdown')?.classList.remove('show');
+    syncVisualSettings();
+}
+
+function changeFontSize(d) { 
+    const isMobile = window.innerWidth <= 768;
+    const deviceSuffix = isMobile ? '-mobile' : '-desktop';
+    
+    const val = document.getElementById('font-size-val'); 
+    if (!val) return;
+    let s = Math.max(12, Math.min(60, parseInt(val.innerText) + d)); 
+    val.innerText = s; 
+    document.documentElement.style.setProperty('--reader-font-size', s + 'px');
+    
+    localStorage.setItem('reader-font-size' + deviceSuffix, s);
+}
+
+function changeAlignment(align) {
+    const isMobile = window.innerWidth <= 768;
+    const deviceSuffix = isMobile ? '-mobile' : '-desktop';
+
+    document.documentElement.style.setProperty('--reader-text-align', align);
+    localStorage.setItem('reader-text-align' + deviceSuffix, align);
+    
+    document.getElementById('align-dropdown')?.classList.remove('show');
+    syncVisualSettings();
+}
+
+function changeLineHeight(h) {
+    const isMobile = window.innerWidth <= 768;
+    const deviceSuffix = isMobile ? '-mobile' : '-desktop';
+
+    document.documentElement.style.setProperty('--reader-line-height', h);
+    localStorage.setItem('reader-line-height' + deviceSuffix, h);
+    
+    document.getElementById('spacing-dropdown')?.classList.remove('show');
+    syncVisualSettings();
+}
+		
+		
         function toggleDarkMode() { 
             isDarkMode = !isDarkMode; 
             const v = document.getElementById('reader-view'); 
             v.classList.toggle('dark-mode', isDarkMode); 
             v.classList.toggle('light-mode', !isDarkMode); 
         }
+		
+	function syncVisualSettings() {
+    // 1. Obtener valores actuales de las variables CSS aplicadas al documento
+    const style = getComputedStyle(document.documentElement);
+    const currentFont = style.getPropertyValue('--reader-font-family').replace(/['"]/g, '').trim();
+    const currentAlign = style.getPropertyValue('--reader-text-align').trim();
+    // Limpiamos el valor del interlineado para que sea solo el número
+    const currentLineHeight = style.getPropertyValue('--reader-line-height').trim();
+
+    // 2. Sincronizar Menú de Fuentes (Lógica robusta)
+    document.querySelectorAll('#font-dropdown .setting-option').forEach(opt => {
+        const fontName = opt.style.fontFamily.replace(/['"]/g, '').trim();
+        const isSelected = fontName === currentFont || opt.innerText.trim() === currentFont;
+        opt.classList.toggle('selected', isSelected);
+    });
+
+    // 3. Sincronizar Menú de Alineación
+    // Buscamos cuál botón contiene el valor exacto (ej: 'justify', 'center', 'left')
+    document.querySelectorAll('#align-dropdown .setting-option').forEach(opt => {
+        const onClickAttr = opt.getAttribute('onclick') || "";
+        opt.classList.toggle('selected', onClickAttr.includes(`'${currentAlign}'`));
+    });
+
+    // 4. Sincronizar Menú de Interlineado
+    document.querySelectorAll('#spacing-dropdown .setting-option').forEach(opt => {
+        const onClickAttr = opt.getAttribute('onclick') || "";
+        // Extraemos el número del onclick para comparar (ej: de "changeLineHeight(1.5)" sacamos "1.5")
+        const valMatch = onClickAttr.match(/[\d.]+/);
+        if (valMatch) {
+            const val = valMatch[0];
+            // Marcamos como seleccionado si el valor del botón coincide con el del CSS
+            opt.classList.toggle('selected', val === currentLineHeight);
+        }
+    });
+}

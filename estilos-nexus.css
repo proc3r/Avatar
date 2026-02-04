@@ -1,3 +1,25 @@
+html {
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+}
+
+/* Evita que el texto se mueva mientras carga la fuente */
+body {
+    font-display: optional;
+}
+
+/* Asegura que nada se salga por los costados */
+* {
+    max-width: 100vw;
+    box-sizing: border-box;
+}
+
+#reader-view, #library-container {
+    width: 100%;
+    overflow-x: hidden;
+    position: relative;
+}
+
 :root {
     --primary-accent: #ffcc00;
     --dark-bg: #0f1115;
@@ -11,8 +33,120 @@
     --reader-font-size: 25px;
     --reader-font-family: 'Merriweather', serif;
     --reader-text-align: justify;
-    --reader-line-height: 1.7;
+    --reader-line-height: 1.8;
 }
+
+
+/* --- HEADER GLOBAL (REPLICA TAILWIND) --- */
+#nexus-header-global {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    
+    background-color: #020202ad;
+    border-bottom: 4px solid #3b82f6;
+    z-index: 2000;
+    backdrop-filter: blur(5px);
+    /* CRÍTICO: Esto permite que la barra se mueva suavemente */
+    transition: transform 0.3s ease-in-out;
+    transform: translateY(0); 
+    will-change: transform;
+}
+
+/* Esta es la clase que usaremos para ocultar manualmente desde JS */
+.header-hidden {
+    transform: translateY(-100%) !important;
+}
+.header-inner {
+    max-width: 80rem; /* max-w-7xl */
+    margin-left: auto;
+    margin-right: auto;
+    padding: 0.5rem 0.75rem; /* pt-3 pb-3 px-3 */
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: flex-end;
+}
+
+/* Escritorio: ajuste de padding lateral */
+@media (min-width: 768px) {
+    .header-inner {
+        padding-left: 2.5rem; /* md:px-10 */
+        padding-right: 2.5rem;
+    }
+}
+
+.logo-text {
+    font-size: 25px; /* text-3xl */
+    line-height: 2.25rem;
+    font-weight: 900; /* font-black */
+    letter-spacing: -0.05em; /* tracking-tighter */
+    color: #ffcc00;
+}
+
+.tagline-text {
+    font-size: 13px; /* text-[13px] */
+    color: #e5e7eb; /* text-gray-200 */
+    text-transform: uppercase;
+    letter-spacing: 0.1097em;
+    font-weight: 700;
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+.status-zone {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    padding-bottom: 0.25rem; /* pb-1 */
+}
+
+.status-flex {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem; /* gap-2 */
+}
+
+/* Spinner exacto a Tailwind animate-spin */
+.spinner {
+    width: 0.75rem; /* w-3 */
+    height: 0.75rem; /* h-3 */
+    border-radius: 9999px;
+    border: 2px solid rgba(255, 255, 255, 0.1);
+    border-top-color: #ffcc00;
+    animation: spin-nexus 1s linear infinite;
+}
+
+@keyframes spin-nexus {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* LED Visual */
+.led {
+    width: 0.625rem; /* w-2.5 */
+    height: 0.625rem; /* h-2.5 */
+    border-radius: 9999px;
+    background-color: #22c55e; /* bg-green-500 */
+    box-shadow: 0 0 8px rgba(34, 197, 94, 0.8);
+}
+
+.status-label {
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.1em; /* tracking-widest */
+    color: #6b7280; /* text-gray-500 */
+    font-family: 'Barlow Condensed', sans-serif;
+}
+
+/* Ajuste necesario para que el contenido no se oculte bajo el header fijo */
+#library-container {
+    padding-top: 77px; /* Altura del header */
+}
+
+.hidden { display: none; }
+
 
 /* 1. ELIMINACIÓN GLOBAL DE LA BARRA GRIS DEL SISTEMA */
 * {
@@ -49,9 +183,17 @@ html, body {
     transition: background-color 0.3s ease;
     height: 100vh; /* Forzamos altura */
     overflow: hidden; /* Evita barra doble en el body */
+	touch-action: manipulation; /* Optimiza el toque y evita el zoom por doble clic */
+    overflow-x: hidden; /* Evita que aparezcan las barras amarillas laterales que mencionas */
+	width: 100%;
+    position: relative;
 }
 
-										  
+			/* Asegura que el modal de imagen no herede el bloqueo de toque */
+#image-modal {
+    touch-action: auto !important;
+}
+							  
 
 #app { 
     height: 100dvh; 
@@ -110,12 +252,30 @@ html, body {
     padding-bottom: env(safe-area-inset-bottom);
 }
 
+/* Asegura que el contenedor de los items del TOC también permita el flujo */
+#toc-container {
+    height: 100%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
 #reader-sidebar {
     height: 100dvh; background: rgba(20, 21, 23, 0.3);
     backdrop-filter: blur(100px); border-right: 1px solid rgba(255, 255, 255, 0.05);
     position: absolute; left: 0; top: 0; display: flex; flex-direction: column; z-index: 110;
     transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1), width 0.3s ease;
     box-sizing: border-box; touch-action: pan-y; z-index: 9999;
+	overflow-y: auto !important; /* Asegura scroll vertical */
+    touch-action: pan-y; /* Permite solo scroll vertical, bloqueando gestos laterales accidentales */
+    overscroll-behavior: contain !important; /* ¡CLAVE! Evita que el scroll afecte al body */
+    -webkit-overflow-scrolling: touch; /* Suavidad en iOS */
+	touch-action: pan-y; /* Solo permite scroll vertical */
+}
+
+/* Evita que el body se mueva cuando el dedo está sobre el sidebar */
+body.sidebar-open {
+    overflow: hidden;
+    overscroll-behavior: none;
 }
 
 #reader-sidebar:not(.open) { transform: translateX(-100%); }
@@ -163,11 +323,54 @@ html, body {
     font-size: var(--reader-font-size);
     text-align: var(--reader-text-align);
     line-height: var(--reader-line-height);
-	padding-bottom: 23px;
+	padding-bottom: 10px;
+	width: 100%;
+    position: relative;
+	text-shadow: 1px 2px 2px #5656568a;
+
 }
 
-									   
-					  
+/* --- ANIMACIONES MÓVILES (Barrido Lateral) --- */
+@media (max-width: 768px) {
+    .slide-in-right {
+        animation: mobileRight 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+    .slide-in-left {
+        animation: mobileLeft 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+    }
+}
+
+@keyframes mobileRight {
+    from { opacity: 0; transform: translateX(40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes mobileLeft {
+    from { opacity: 0; transform: translateX(-40px); }
+    to { opacity: 1; transform: translateX(0); }
+}
+
+
+
+/* --- ANIMACIONES ESCRITORIO (Emerger + Difuminar) --- */
+@media (min-width: 769px) {
+    .desktop-fade {
+        animation: desktopReveal 0.2s ease-out forwards;
+    }
+}
+
+@keyframes desktopReveal {
+    from { 
+        opacity: 0; 
+        transform: translateY(0px) scale(0.96); 
+        filter: blur(1px);
+    }
+    to { 
+        opacity: 1; 
+        transform: translateY(0) scale(1); 
+        filter: blur(0);
+    }
+}			  
 					
  
 
@@ -187,18 +390,7 @@ html, body {
 	animation: ease-in-out;
 }
 
-#reading-container-fixed {
-    flex: 1; padding: 0 10%;
-    scroll-behavior: smooth; display: flex; flex-direction: column;
-									   
-    overscroll-behavior-y: contain;
-}
 
-#reading-container-fixed > .content-wrapper {
-    flex: 1; display: flex; flex-direction: column;
-    justify-content: center; min-height: min-content;
-    padding-top: 20px; padding-bottom: 40px;
-}
 
 /* 5. PROGRESO Y MARCADORES */
 .progress-bar-container {
@@ -455,11 +647,19 @@ html, body {
 /* Forzamos que la tarjeta no tenga barras grises externas */
 .book-card {
     background: transparent !important;
+	backface-visibility: hidden;
+    transform: translateZ(0); /* Fuerza aceleración de hardware sin mover el objeto */
 }
+
+
 
 /* El overlay ahora ocupa toda la imagen para el degradado */
 .book-card-overlay {
     transition: all 0.3s ease;
+}
+
+.book-card:hover {
+    transition: border-color 0.3s ease !important; /* Solo permite transición al pasar el mouse */
 }
 
 .book-card:hover .book-card-overlay {
@@ -532,20 +732,50 @@ html, body {
 
 
 	
-/* 7. DROPDOWNS Y AJUSTES */
-.settings-dropdown-container { position: relative; } 
-.settings-dropdown {
-    position: absolute; top: 110%; left: 50%;
-    transform: translateX(-50%);
-    min-width: 140px; background: var(--dropdown-bg);
-    /*backdrop-filter: blur(12px);*/
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 10px; box-shadow: 0 10px 25px rgba(0,0,0,0.4);
-    z-index: 200; display: none; padding: 4px 0; color: inherit;
-}
-.settings-dropdown.show { display: block; }
+/* 7. DROPDOWNS Y AJUSTES - CORREGIDO */
+.settings-dropdown-container { 
+    position: relative; 
+    display: inline-flex; 
+} 
 
-.font-dropdown { width: 170px; max-height: 320px; }
+.settings-dropdown {
+    position: absolute; 
+    top: 120%; /* Un poco más de aire abajo del botón */
+    right: 0;   /* Alineado al borde derecho del botón */
+    left: auto; /* Anulamos el centrado que causa el salto */
+    transform: none; /* Quitamos el transform para que no choque con la animación */
+    
+    min-width: 140px; 
+    background: var(--dropdown-bg);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px; 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.4);
+    z-index: 200; 
+    display: none; 
+    padding: 4px 0; 
+    color: inherit;
+}
+
+/* Animación simplificada para evitar saltos de posición */
+@keyframes fadeInSimple {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.settings-dropdown.show { 
+    display: block; 
+    animation: fadeInSimple 0.2s ease-out; 
+}
+
+.font-dropdown { 
+    width: 180px; 
+    max-height: 320px; 
+}
+
+@keyframes fadeInScale {
+    from { opacity: 0; transform: translateY(-10px) scale(0.95); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
 
 .setting-option {
     padding: 8px 14px; cursor: pointer; font-size: 18px;
@@ -561,17 +791,24 @@ html, body {
     opacity: 0.6; letter-spacing: 0.05em;
 }
 
+/* Unifica el tamaño de todos los botones de icono del menú superior */
 .nav-icon-btn {
-    width: 28px; height: 28px; display: flex; align-items: center; justify-content: center;
-    border-radius: 50%; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.05);
-    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 32px;
+    border-radius: 9999px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    transition: all 0.2s ease;
 }
 .nav-icon-btn:hover { background: rgba(255,255,255,0.15); }
 
 #resume-card {
     position: fixed; bottom: 2rem; right: 2rem; z-index: 1000;
     border: 1px solid rgba(255, 204, 0, 0.3);
-    padding: 11px 12px; border-radius: 17px;
+    padding: 3px 12px; border-radius: 12px;
     
    /* animation: slideInUp 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);*/
     cursor: pointer; display: flex; align-items: center; gap: 9px;
@@ -597,8 +834,8 @@ html, body {
 
 .resume-info { display: flex; flex-direction: column; overflow: hidden; }
 
-.resume-main-text { font-weight: 800; color: #fff; text-transform: uppercase; font-size: 13px; letter-spacing: 0.02em; text-shadow: -6px 4px 8px rgb(0 0 0 / 80%); }
-.resume-chapter-name { color: rgba(255,255,255,0.8); text-transform: capitalize; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin: 1px 0; }
+.resume-main-text { font-weight: 600; color: #fff; text-transform: uppercase; font-size: 13px; letter-spacing: 0.02em; text-shadow: -6px 4px 8px rgb(0 0 0 / 80%); }
+.resume-chapter-name { color: rgba(255,255,255,0.8); text-transform: capitalize; font-size: 14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;}
 .resume-book-title { 
     font-family: 'Barlow Condensed', sans-serif; font-style: italic; 
     color: var(--primary-accent); font-size: 18px; font-weight: 700; text-transform: uppercase;
@@ -610,15 +847,7 @@ html, body {
     to { transform: translateY(0); opacity: 1; }
 }
 
-@media (max-width: 768px) {
-    #reading-container-fixed {padding-right: 20px;  padding-left: 20px;}
-    #reading-container-fixed > .content-wrapper { padding-top: 5px; padding-bottom: 20px; }
-    #image-timer { top: 90px; font-size: 17px; padding: 6px 14px; gap: 8px; }
-    .nav-icon-btn { width: 24px; height: 24px; }
-    #resume-card { bottom: 0.5rem; max-width: 320px; width: 100%; right: 15px;}
-    .settings-dropdown { left: auto; right: 0; transform: none; }
-    .font-dropdown { left: 0; transform: none; }                                            
-}
+
 
  /* Ocultar etiquetas de Callouts estilo Obsidian [!tipo] */
         #book-content blockquote, #book-content p {
@@ -744,7 +973,7 @@ html, body {
     font-size: 16px;
     font-weight: bold;
     text-transform: uppercase;
-    transition: all 0.2s;
+    /*transition: all 0.2s;*/
     font-family: 'Barlow Condensed';
     box-shadow: 0px 0px 6px rgb(0 255 0 / 88%);
 }
@@ -1866,3 +2095,584 @@ html, body {
     background: rgba(255, 204, 0, 0.3);
 }
 
+/* Bloqueo de transiciones iniciales */
+.book-card, .reader-section-title, .custom-blockquote, .reader-image-container {
+    transition: none !important; 
+}
+
+/* Solo permitimos transiciones en estados específicos */
+.book-card:hover {
+    transition: transform 0.3s ease, border-color 0.3s ease !important;
+}
+
+/* Asegurar que el contenedor de lectura no herede animaciones extrañas */
+#reading-container-fixed {
+    flex: 1;
+	display: flex; 	
+	flex-direction: column;
+	width: 100%;
+	
+	margin: 0 auto;
+	position: relative;
+	    
+	/* Centrado Vertical que tenías antes */
+     
+    padding: 0 10%; 
+	    
+	/* Comportamiento y Scroll */
+    overflow-y: auto;
+    overflow-x: hidden;
+    scroll-behavior: auto !important; /* Evita saltos al cambiar de página */
+    touch-action: pan-y;
+    overscroll-behavior-y: contain;
+    -webkit-overflow-scrolling: touch;
+	/* Estabilización de altura */
+    height: calc(100vh - 130px); 
+	
+}
+
+#reading-container-fixed > .content-wrapper {
+    flex: 1; display: flex; flex-direction: column;
+    justify-content: center; min-height: min-content;
+    padding-top: 20px; padding-bottom: 40px;
+}
+
+@media (max-width: 768px) {
+    #reading-container-fixed {padding-right: 20px;  padding-left: 20px;}
+    #reading-container-fixed > .content-wrapper { padding-top: 5px; padding-bottom: 20px; }
+    #image-timer { top: 90px; font-size: 17px; padding: 6px 14px; gap: 8px; }
+    .nav-icon-btn { width: 24px; height: 24px; }
+    #resume-card { bottom: 0.5rem; max-width: 320px; width: 100%; right: 15px;}
+    .settings-dropdown { left: auto; right: 0; transform: none; }
+    .font-dropdown { left: auto; transform: none; }                                            
+}
+
+/* =========================================
+   REPRODUCTOR PODCAST (CONSOLIDADO)
+   ========================================= */
+
+/* Contenedor Principal Flotante 
+.podcast-floating-bar {
+    position: fixed;
+    top: 42px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 95%;
+    max-width: 800px;
+    background: rgba(10, 10, 10, 0.7);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 204, 0, 0.2);
+    border-radius: 12px;
+    z-index: 1000;
+    box-shadow: 0 0 7px rgb(251 0 0 / 80%);
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 3px 15px;
+}*/
+
+/* REPRODUCTOR BASE */
+.podcast-floating-bar {
+    position: fixed;
+    background: rgba(10, 10, 10, 0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 204, 0, 0.2);
+    border-radius: 12px;
+    z-index: 1000;
+    box-shadow: 0 0 7px rgb(251 0 0 / 80%);
+    transition: all 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex;
+    flex-direction: column;
+    padding: 3px 15px;
+}
+
+
+/* MODO MOBILE: Barra superior dinámica */
+@media (max-width: 768px) {
+    .podcast-floating-bar {
+        top: 77px; /* Posición cuando el header es visible */
+        left: 50%;
+        transform: translateX(-50%);
+        width: 97%;
+        border-radius: 12px;
+        position: fixed;
+        z-index: 1500; /* Por debajo del header global que tiene 2000+ */
+        
+        /* Mantenemos tu transición suave */
+        transition: top 0.4s cubic-bezier(0.4, 0, 0.2, 1), 
+                    width 0.3s ease, 
+                    border-radius 0.3s ease;
+    }
+
+    /* ESTADO SINCRONIZADO: Cuando el header se oculta */
+    .podcast-floating-bar.header-hidden-state {
+        top: 4px !important; /* Se pega arriba cuando la barra desaparece */
+    }
+}
+
+/* MODO ESCRITORIO: Tarjeta abajo a la izquierda */
+@media (min-width: 769px) {
+    .podcast-floating-bar {
+        bottom: 2rem;
+        left: 2rem;
+        top: auto; /* Anulamos el top */
+        transform: none;
+        width: 350px;
+        border-radius: 12px;
+    }
+    /* En escritorio no necesitamos que suba al techo */
+    .podcast-floating-bar.sticky-top {
+        top: auto !important;
+        bottom: 20px !important;
+    }
+	.pod-row-bottom {
+    width: 100%;
+    padding: 4px 0;
+	}
+}
+
+
+/* Estado Pegado al Techo (Scroll) */
+.podcast-floating-bar.sticky-top {
+    top: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 0 !important;
+    border-left: none;
+    border-right: none;
+    background: rgba(5, 5, 5, 0.98);
+}
+
+/* FILA 1: Título y Botón Cerrar */
+.pod-row-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 13px;
+    padding-top: 12px;
+}
+
+#podcast-book-title {
+    color: #ffcc00;
+    font-weight: 800;
+    font-size: 17px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 85%;
+	font-family: 'Barlow Condensed';
+}
+
+.pod-close {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.5);
+    cursor: pointer;
+    padding: 0;
+    transition: color 0.2s;
+}
+.pod-close:hover { color: #ef4444; }
+
+/* FILA 2: Controles Centrales y Tiempo */
+
+
+.pod-controls {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+}
+
+.pod-btn {
+    background: none;
+    border: none;
+    color: white;
+    cursor: pointer;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+.pod-btn:hover { opacity: 1; }
+
+.pod-btn-main {
+    background: none;
+    border: none;
+    color: #ffcc00;
+    cursor: pointer;
+    transform: scale(1);
+    transition: transform 0.2s;
+}
+.pod-btn-main:hover { transform: scale(1.1); }
+.pod-btn-main .material-icons { font-size: 38px; }
+
+#pod-time {
+    position: absolute;
+    right: 0;
+    font-size: 13px;
+    color: rgba(255,255,255,1);
+    font-family: 'Inter', monospace;
+}
+
+/*   */
+
+/* Contenedor principal de la fila de controles */
+.pod-row-mid {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 5px 0px;
+	position: relative;
+    height: 30px;
+}
+
+/* Base para las tres columnas */
+.pod-mid-left, .pod-mid-right {
+    flex: 1; /* Ocupan el mismo espacio para forzar el centro */
+    display: flex;
+    align-items: center;
+}
+
+.pod-mid-center {
+    flex: 0 0 auto; /* No se expande, mantiene su tamaño natural */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.pod-mid-right {
+    justify-content: flex-end; /* Tiempo a la derecha */
+    font-family: 'Barlow Condensed', sans-serif;
+    font-size: 14px;
+    color: white;
+}
+
+/* Ajuste específico del volumen para que no "salte" */
+.pod-volume-container {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+#pod-volume-slider {
+    width: 60px;
+    height: 4px;
+    cursor: pointer;
+    vertical-align: super;
+}
+
+/* Botones de control */
+.pod-controls {
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+.pod-btn-main .material-icons {
+    font-size: 35px; /* Tamaño destacado para el Play/Pause */
+    color: #ffcc00;
+}
+
+.pod-btn .material-icons {
+    font-size: 24px;
+    color: white;
+    opacity: 0.8;
+}
+
+/* Responsivo para móviles muy estrechos */
+@media (max-width: 320px) {
+    #pod-volume-slider { display: none; } /* Ocultar barra de volumen si no hay espacio, dejar solo icono */
+    .pod-mid-right { font-size: 12px; }
+}
+
+
+/*  */
+
+
+
+
+
+
+
+
+/* FILA 3: Barra de Progreso */
+.pod-row-bottom {
+    width: 100%;
+    padding-top: 1px;
+}
+
+#pod-progress {
+    width: 100%;
+    height: 4px;
+    accent-color: var(--marker-h1);
+    cursor: pointer;
+    outline: none;
+    box-shadow: 0 0 4px rgb(255 68 68 / 55%);
+    border: 1px solid rgba(0,0,0,0.2);
+}
+
+/* BOTÓN EN LA CARD DEL LIBRO (BIBLIOTECA) */
+.podcast-badge-btn {
+    position: absolute;
+    top: 10px;
+    right: 10px;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    background: rgba(0, 0, 0, 0.75);
+    padding: 3px 3px 3px 12px;
+    border-radius: 30px;
+    border: 1.5px solid #3b82f6; /* Azul inicial */
+    cursor: pointer;
+    transition: all 0.3s ease;
+	box-shadow: 0 0 11px rgb(26 44 229 / 61%);
+}
+
+.podcast-badge-btn:hover { transform: scale(1.1); }
+
+.podcast-badge-btn.active {
+    border-color: #ef4444;
+    background: rgb(155 27 27 / 78%);
+    box-shadow: 0 0 8px rgb(239 68 68 / 57%);
+}
+
+
+
+.pod-label {
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
+    font-family: 'Barlow Condensed';
+}
+
+.pod-icon-circle {
+    width: 26px;
+    height: 26px;
+    background: #3b82f6;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.3s;
+}
+
+.podcast-badge-btn.active .pod-icon-circle {
+    background: #ef4444;
+}
+
+.pod-icon-circle .material-icons {
+    font-size: 16px;
+    color: white;
+}
+
+
+
+/* --- PORTAL DE RESONANCIA: SISTEMA INDEPENDIENTE --- */
+
+.portal-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(1px);
+    display: none; /* Se activa con .flex en JS */
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    animation: portalFadeIn 0.4s ease;
+	cursor: pointer; /* Indica que el fondo es interactivo */
+}
+
+.portal-overlay.flex { display: flex; }
+
+.portal-window {
+    background: rgba(0, 0, 0, 0.8);
+    width: 100%;
+    max-width: 400px;
+    border-radius: 24px;
+    overflow: hidden;
+    position: relative;
+    border: 1px solid rgba(156, 39, 176, 0.4);
+    box-shadow: 0 0 25px rgb(0 0 0 / 50%);
+    backdrop-filter: blur(10px);
+	cursor: default; /* Evita que el cursor de puntero se herede dentro de la ventana */
+}
+
+/* Efecto Latido Púrpura */
+.portal-pulse { animation: portalPulseAnim 3s infinite ease-in-out; }
+@keyframes portalPulseAnim {
+    0%, 100% { box-shadow: 0 0 15px rgba(156, 39, 176, 0.5); }
+    50% { box-shadow: 0 0 35px rgba(211, 71, 235, 0.8); }
+}
+
+/* Cabecera con Imagen */
+.portal-header {
+    position: relative;
+    height: 180px;
+    width: 100%;
+}
+
+#portal-cover-img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 1;
+}
+
+.portal-header-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(to top, #0f1115 10%, transparent 100%);
+}
+
+.portal-title-box {
+    position: absolute;
+    bottom: 15px;
+    left: 0;
+    right: 0;
+    text-align: center;
+    padding: 0 20px;
+}
+
+#portal-title-text {
+    color: white;
+    font-size: 22px;
+    font-weight: bold;
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-style: italic;
+    margin: 0;
+    letter-spacing: 1px;
+}
+
+.portal-subtitle {
+    color: #ffcc00;
+    font-size: 18px;
+    font-weight: bold;
+    text-transform: uppercase;
+    font-family: 'Barlow Condensed', sans-serif;
+    margin: 5px 0 0 0;
+}
+
+/* Grid de Acciones */
+.portal-body {
+    padding: 30px 20px 46px 20px;
+}
+
+.portal-action-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 25px;
+}
+
+.portal-action-item {
+    background: none;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 10px;
+    transition: transform 0.2s ease;
+}
+
+.portal-action-item:hover { transform: scale(1.1); }
+.portal-action-item.disabled { opacity: 0.3; cursor: default; }
+
+.portal-icon-circle {
+    width: 65px;
+    height: 65px;
+    border-radius: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-width: 2px;
+    border-style: solid;
+    backdrop-filter: blur(5px);
+}
+
+.portal-icon-circle span { font-size: 32px; }
+
+.portal-action-item span:not(.material-icons) {
+    color: white;
+    font-family: 'Barlow Condensed', sans-serif;
+    text-transform: uppercase;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+/* Colores de Iconos (Estilo Neón) */
+.color-read { background: rgb(154 157 11 / 46%);
+    color: #ffffff;
+    border-color: #e9db23;
+    box-shadow: 0px 0px 11px rgb(234 237 33 / 66%);
+    backdrop-filter: blur(3px);
+    border: 2px solid #babb18; }
+	
+.color-synopsis { 
+    background: rgb(37 211 102 / 42%);
+    color: #13ff6b;
+    border-color: rgba(37, 211, 102, 0.6);
+    box-shadow: 0px 0px 3px rgb(0 255 0 / 84%);
+    backdrop-filter: blur(3px);
+    border: 2px solid rgb(0 255 0 / 84%);
+}
+.color-replay {background: rgb(82 82 82 / 42%);
+    color: #ffffff;
+    border-color: rgb(255 255 255 / 36%);
+    box-shadow: 0px 0px 10px rgb(255 255 255 / 86%);
+    backdrop-filter: blur(3px);
+    border: 2px solid rgb(255 255 255 / 56%);}
+.color-ia { 
+    background: rgb(24 119 242 / 43%);
+    color: #ffffff;
+    border-color: rgb(24 119 242 / 80%);
+    box-shadow: 0 0 12px rgb(24 119 242 / 50%);
+    backdrop-filter: blur(3px);
+    border: 2px solid rgb(24 119 242 / 80%); 
+}
+
+/* Botón de Cierre Circular Inferior */
+.portal-btn-close {
+      position: fixed !important;
+    bottom: 19px;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    z-index: 9999;
+    padding: 4px 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+	font-size: 18px;
+    transition: all 0.3s ease;
+    background: rgba(255, 68, 68, 0.5);
+    border: 1px solid rgba(255, 68, 68, 0.3);
+    color: #fffdfd;
+    box-shadow: 0px 0px 20px rgb(255 68 68 / 68%);
+    border-radius: 2rem;
+    font-size: 20px;
+    backdrop-filter: blur(2px);
+}
+
+.portal-btn-close:hover {
+    transform: scale(1.1);
+    filter: brightness(1.2);
+}
+
+/* Animación Entrada */
+@keyframes portalFadeIn {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* Adaptabilidad Escritorio */
+@media (min-width: 1024px) {
+    .portal-window { max-width: 550px; }
+    .portal-action-grid { grid-template-columns: repeat(4, 1fr); }
+    .portal-header { height: 110px; }
+}
